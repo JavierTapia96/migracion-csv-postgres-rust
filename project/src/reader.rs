@@ -1,24 +1,34 @@
 use std::{error::Error, vec};
-use std::fs; 
+use std::fs;
+use std::process;
 
 use regex::Regex;
 
 use serde::Deserialize;
+use serde::Serialize;
 
-#[derive(Debug, Deserialize)]
-struct Persona {
-    identificacion: String,
-    nombre: String,
-    genero: String,
-    estadocivil: String,
-    fechanacimiento: String,
-    telefono: String,
-    direccion: String,
-    email: String
+use crate::database::database;
+use crate::database::insert;
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Persona {
+    pub identificacion: String,
+    pub nombre: String,
+    pub genero: String,
+    pub estadocivil: String,
+    pub fechanacimiento: String,
+    pub telefono: String,
+    pub direccion: String,
+    pub email: String
 }
 
 pub fn read() -> Result<(), Box<dyn Error>> {
     let paths = fs::read_dir("./tmp/").unwrap(); 
+    
+    if let Err(err) = database() {
+        println!("{}", err);
+        process::exit(1);
+    }
 
     for path in paths { 
         let dir = path?;
@@ -29,7 +39,7 @@ pub fn read() -> Result<(), Box<dyn Error>> {
                                         .expect("Cant read field");
         for result in rdr.deserialize::<Persona>() {
             let record = result?;
-            let mut validado: u32 = 1;
+            let mut validado: i32 = 1;
             let mut observacion = String::new();
             if validarcedula(record.identificacion.clone()) == false {
                 let repasaporte = Regex::new(r"^[ÑA-Z0-9]+$").unwrap();
@@ -99,11 +109,10 @@ pub fn read() -> Result<(), Box<dyn Error>> {
                 validado = 0;
             }
 
-            
-
-            println!("{:?}", record);
-            println!("{}", validado);
-            println!("{}", observacion);
+            if let Err(err) = insert(record, validado, observacion) {
+                println!("{}", err);
+                process::exit(1);
+            }
         }
     }
 
