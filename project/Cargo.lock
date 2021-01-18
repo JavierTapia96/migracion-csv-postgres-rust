@@ -1185,7 +1185,9 @@ dependencies = [
  "actix-web",
  "csv",
  "futures",
+ "regex",
  "sanitize-filename",
+ "serde",
 ]
 
 [[package]]
